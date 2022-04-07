@@ -1,15 +1,6 @@
 // CPE 301 Semester Project
 // Group 39
 // Parker True, Tiffany Fung, Bryce Millis
-
-void setup() {
-  // put your setup code here, to run once:
-
-}
-
-void loop() {// CPE 301 Semester Project
-// Group 39
-// Parker True, Tiffany Fung, Bryce Millis
 #include <Arduino.h>
 
 int min_threshold = 310;
@@ -34,7 +25,7 @@ void loop() {
 // LCD needs to be connected to idle() and running() 
 idle()
 {
-  //green LED
+  //green LED is high when function in use
   // if temperature is greater than the threshold, call running()
   // if water is <= to thres, call error()
   // if stop button is pressed, call disabled()
@@ -43,14 +34,16 @@ idle()
 
 running()
 {
-  // blue LED
+  // blue LED is high when function in use
   // if temperature is <= thres, call idle()
   // if water < thres, call error()
   // if stop button is pressed, call disabled()
+  // can start fan motor and stop fan motor
 }
 
 error()
 {
+  // red LED is high when function in use
   // if reset button is pressed, call idle()
   // if stop button is pressed, call disabled()
  
@@ -58,12 +51,10 @@ error()
 
 disabled()
 {
+  // yellow LED is high when function in use
   // if start button is pressed, call idle()
 }
 
 
 
 
-  // put your main code here, to run repeatedly:
-
-}
