@@ -22,17 +22,17 @@ void setup(){
 
 void loop(){
   // If state != 0 & fan adjust input
-    // Adjust fan
+    // Adjust fan position
     // Serial port: report vent position change
   
-  /* if(state = 1 & getTemperature() > TEMPERATURE_LIMIT){
-    // Start fan motor
-    // setState(2); // running
+  /*if(state = 1 & getTemperature() > TEMPERATURE_LIMIT){
+    setFan(1);   // fan on
+    setState(2); // running
   }*/
 
   /*if(state = 2 & getTemperature() < TEMPERATURE_LIMIT){
-    // Stop fan motor
-    // setState(1); // idle
+    setFan(0);   // fan off
+    setState(1); // idle
   }*/
 }
 
@@ -54,6 +54,11 @@ int getTemperature(){
   
 }
 
+// Turns fan motor on and off
+void setFan(int fanOn){
+  // fanOn = 0 -> off, fanON = 1 -> on
+}
+
 /* Start Button Interrupt:
   // Turn on LCD
   // setState(1); // idle
@@ -61,7 +66,7 @@ int getTemperature(){
 
 /* Stop Button Interrupt:
   // Turn off LCD
-  // Turn off fan motor
+  // setFan(0);   // fan off
   // setState(0); // disabled
 */
 
@@ -70,16 +75,16 @@ int getTemperature(){
     // setState(1); // idle
 */
 
-// NOTE: Can also be done using ADC
-/* Comparator Interrupt: // waterLevel < threshold
-  // Write error message to LCD
-  // Turn off fan motor
-  // setState(3); // error
-*/
-
 /* Timer Interrupt:
   if(state != 0){
     // Display humidity and temperature on LCD
   }
   // resetTimer(LCD_REFRESH);
+*/
+
+// NOTE: Can also be done using ADC
+/* Comparator Interrupt: // waterLevel < threshold
+  // Write error message to LCD
+  // setFan(0);   // fan off
+  // setState(3); // error
 */

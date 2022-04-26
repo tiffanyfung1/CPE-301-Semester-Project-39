@@ -1,0 +1,8 @@
+1) Interrupts: stop, start, reset, timer
+2) Configure ledPort
+3) resetTimer()
+4) getTemperature()
+5) setFan()
+6) LCD on, off, display
+7) Error interrupt
+8) Adjust fan position
