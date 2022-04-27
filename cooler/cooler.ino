@@ -113,7 +113,7 @@ threshVal = analogRead(senspin); // read from analog pin, store in threshVal
 if (thresVal<=300){
   lcd.println("Water level is too low"); // LCD error message
 }
-delay(1000);
+//resetTimer(LCD_REFRESH);
   
   
   // setFan(0);   // fan off
