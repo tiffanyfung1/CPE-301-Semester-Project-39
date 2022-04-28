@@ -120,7 +120,6 @@ if (thresVal<=300){
   // setState(3); // error
 int cwSwitch = 2; //clockwise
 int ccwSwitch = 3; //counter clock wise 
-int stopSwitch = 4; //stop switch
 int Pin1 = 10; //IN1 
 int Pin2 = 11; //IN2
 int Pin3 = 12; //IN3
@@ -135,5 +134,49 @@ int stepperPole = 0;
 int direction = 0;
 
 void setup()
+{ //functions need to be changed to manual port registration 
+ pinMode(Pin1, OUTPUT); //define pin for ULN2003 in1 
+ pinMode(Pin2, OUTPUT); //define pin for ULN2003 in2   
+ pinMode(Pin3, OUTPUT); //define pin for ULN2003 in3   
+ pinMode(Pin4, OUTPUT); //define pin for ULN2003 in4    
+
+ pinMode(cwSwitch,INPUT_PULLUP);
+ pinMode(ccwSwitch,INPUT_PULLUP);
+}
+
+void loop()
 {
+  if(digitalRead(ccwSwitch) == LOW) 
+  {
+    dirStatus =1;
+  }else if(digitalRead(cwSwitch) == LOW)
+  {
+   dirStatus  = 2;  
+  }else
+  {
+    dirStatus =3; 
+  }
+ if(dirStatus ==1){ 
+   poleStep++; 
+    driveStepper(poleStep);    
+ }else if(dirStatus ==2){ 
+   poleStep--; 
+    driveStepper(poleStep);    
+ }else{
+  driveStepper(8);   
+ }
+ if(poleStep>7){ 
+   poleStep=0; 
+ } 
+ if(poleStep<0){ 
+   poleStep=7; 
+ } 
+//add reset timer (alternative for delay function) here
   
+  void stepMotor(int step)
+  {
+     digitalWrite(Pin1, pole1[step]);  
+     digitalWrite(Pin2, pole2[step]); 
+     digitalWrite(Pin3, pole3[step]); 
+     digitalWrite(Pin4, pole4[step]); 
+  }
