@@ -118,3 +118,22 @@ if (thresVal<=300){
   
   // setFan(0);   // fan off
   // setState(3); // error
+int cwSwitch = 2; //clockwise
+int ccwSwitch = 3; //counter clock wise 
+int stopSwitch = 4; //stop switch
+int Pin1 = 10; //IN1 
+int Pin2 = 11; //IN2
+int Pin3 = 12; //IN3
+int Pin4 = 13; //IN4
+
+int pole1[] ={0,0,0,0, 0,1,1,1, 0}; //poles each with 8 step vals
+int pole2[] ={0,0,0,1, 1,1,0,0, 0};
+int pole3[] ={0,1,1,1, 0,0,0,0, 0};
+int pole4[] ={1,1,0,0, 0,0,0,1, 0};
+
+int stepperPole = 0;
+int direction = 0;
+
+void setup()
+{
+  
