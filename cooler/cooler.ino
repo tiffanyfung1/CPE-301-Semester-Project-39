@@ -148,28 +148,28 @@ void loop()
 {
   if(digitalRead(ccwSwitch) == LOW) 
   {
-    dirStatus =1;
+    direction =1;
   }else if(digitalRead(cwSwitch) == LOW)
   {
-   dirStatus  = 2;  
+   direction  = 2;  
   }else
   {
-    dirStatus =3; 
+    direction =3; 
   }
- if(dirStatus ==1){ 
-   poleStep++; 
+ if(direction ==1){ 
+   stepperPole++; 
     driveStepper(poleStep);    
- }else if(dirStatus ==2){ 
-   poleStep--; 
+ }else if(direction ==2){ 
+   stepperPole--; 
     driveStepper(poleStep);    
  }else{
   driveStepper(8);   
  }
- if(poleStep>7){ 
-   poleStep=0; 
+ if(stepperPole>7){ 
+   stepperPole=0; 
  } 
- if(poleStep<0){ 
-   poleStep=7; 
+ if(stepperPole<0){ 
+   stepperPole=7; 
  } 
 //add reset timer (alternative for delay function) here
   
