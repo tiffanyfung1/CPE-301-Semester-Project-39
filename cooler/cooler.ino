@@ -61,10 +61,9 @@ int water_level = 8;
 int level_history = 0;
 
 // LED macros and variables
-//volatile unsigned char* ledPort = (unsigned char*) 0x##; 
-//volatile unsigned char* ledPortDDR  = (unsigned char*) 0x##; 
-#define LEDS_OFF()     *ledPort &= ~(0x##);
-#define LED_ON(pinNum) *ledPort |= (0x01 << pinNum);
+#define LEDS_OFF()     PORTE &= ~(0x3A);
+#define LED_ON(pinNum) PORTE |= (0x01 << ledPins[state]);
+int ledPins[4] = {2, 3, 5, 1};
 
 // DHT macros and variables
 #define DHT_ANALOGPIN A0
@@ -78,11 +77,17 @@ LiquidCrystal lcd(12, 11, 5, 4, 3, 2); // initialized w/ #s of interface pins
 unsigned long nextLCDRefresh;
 
 // Cooler state variables
-int state; // 0=disabled, 1=idle, 2=running, 3=error
-char* stateNames[] = {"DISABLED", "IDLE", "RUNNING", "ERROR");
+volatile int state; // 0=disabled, 1=idle, 2=running, 3=error
+const char* stateNames[] = {"DISABLED", "IDLE", "RUNNING", "ERROR");
 
 void setup(){  
-  //*ledPortDDR |= 0x##;
+  // Interrupt variables
+  PCICR |= 1 << PCIE1; // set to generate interrupts
+  PCMSK1 |= 1 << PCINT10; // enable on pin 5
+  DDRJ &= 0 << DD1; // set to input with pullup enabled
+  PORTJ |= 1 << DD1;
+  
+  DDRE |= 0x3A; // 0b0011_1010, LED outputs
   nextLCDRefresh = 0;
   Serial.begin(9600);
   setState(0); // disabled
@@ -153,9 +158,11 @@ void displayTempAndHumidity(){
   }
 }
 
-/* Start Button Interrupt:
+// Start button interrupt
+ISR(PCINT1_vect){ 
   setState(1); // idle
-*/
+}
+
 
 /* Stop Button Interrupt:
   setFan(0);   // fan off
