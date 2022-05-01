@@ -1,0 +1,43 @@
+// Pins guide
+
+1. LED yellow - Pin 2
+2. LED green - Pin 3
+3. LED red - Pin 1
+4. LED blue - Pin 5
+5. Chip L293D
+   - prong 1- pin 27
+   - prong 2- pin 24
+   - prong 3- power to fan
+   - prong 4- ground
+   - prong 5- EMPTY
+   - prong 6- ground to fan
+   - prong 7- pin 23
+   - prong 8- power
+6. temperature/humidiy
+   - pin 27
+7. LCD
+   - K-ground
+   - A-power
+   - D7-pin 12
+   - D6- pin 11
+   - D5- pin 10
+   - D4- pin 9
+   - E- pin 8
+   - RW- ground
+   - RS- pin 7
+   - V0- potentiometer
+   - VDD- power
+   - VSS- ground
+8. real time
+   - SDA- pin SDA 20
+   - SCL- pin SCL 21
+9. push button 1 // start button
+   - pin 14
+10. push button 2 // stop button
+   - pin 15
+11. push button 3 
+   - pin 16
+11. water sensor
+   - A8
+12. Servo
+   - pin 13
