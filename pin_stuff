@@ -35,7 +35,7 @@
    - pin 14
 10. push button 2 // stop button
    - pin 15
-11. push button 3 
+11. push button 3 // reset button
    - pin 16
 11. water sensor
    - A8
