@@ -32,16 +32,20 @@
    - SDA- pin SDA 20
    - SCL- pin SCL 21
 9. push button 1 // start button
-   - pin 14
+   - pin 45
 10. push button 2 // stop button
-   - pin 15
+   - pin 46
 11. push button 3 // reset button
-   - pin 16
-12. water sensor
+   - pin 47
+12. push button 4 // step motor input 1
+   - pin 48
+13. push button 5 // step motor input 2
+   -pin 49
+14. water sensor
    - A8
-13. Servo
+15. Servo
    - pin 13
-14. step motor
+16. step motor
    - 1N1 - pin 30
    - 1N2 - pin 31
    - 1N3 - pin 32
