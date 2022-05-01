@@ -1,3 +1,5 @@
+#include <dht.h>
+
 // CPE 301 Semester Project
 // Swamp Cooler
 // Group 39
@@ -5,7 +7,7 @@
 
 #include <Arduino.h>
 #include <LiquidCrystal.h>
-#include <dht.h>
+
 
 // LED macros and variables
 #define LEDS_OFF()     PORTE &= ~(0x3A);
@@ -15,17 +17,17 @@ int ledPins[4] = {2, 3, 5, 1};
 // DHT macros and variables
 #define DHT_ANALOGPIN A0
 #define DHTTYPE DHT11
-dht DHT;
+DHT dhtSensor;
 #define TEMPERATURE_LIMIT 70
 
 // LCD macros and variables
-#define LCD_REFRESH 60 * 1000
+#define LCD_REFRESH 60000
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2); // initialized w/ #s of interface pins
 unsigned long nextLCDRefresh;
 
 // Cooler state variables
 volatile int state; // 0=disabled, 1=idle, 2=running, 3=error
-const char* stateNames[] = {"DISABLED", "IDLE", "RUNNING", "ERROR");
+const char stateNames[4][9] = {"DISABLED", "IDLE", "RUNNING", "ERROR"};
 
 // Stepper motor variables
 int cwSwitch = 2; //clockwise
@@ -39,6 +41,7 @@ int pole2[] ={0,0,0,1, 1,1,0,0, 0};
 int pole3[] ={0,1,1,1, 0,0,0,0, 0};
 int pole4[] ={1,1,0,0, 0,0,0,1, 0};
 int stepperPole = 0;
+int poleStep = 0;
 int direction = 0;			   
 			    
 void setup(){  
@@ -66,7 +69,7 @@ void setup(){
 
 void loop(){
   // Adjust fan position
-	if(state!=0){
+	/*if(state!=0){
     // Get position change direction
     if(digitalRead(ccwSwitch) == LOW) {
       direction =1;
@@ -91,16 +94,16 @@ void loop(){
     } else if(stepperPole<0){ 
       stepperPole=7; 
     } 
-  }
+  }*/
   
   // Temperature > threshold: turn on fan
-  if(state = 1 & dht.readTemperature() > TEMPERATURE_LIMIT){
+  if(state = 1 & dhtSensor.readTemperature > TEMPERATURE_LIMIT){
     setFan(1);   // fan on
     setState(2); // running
   }
 
   // Temperature < threshold: turn off fan
-  else if(state = 2 & dht.readTemperature() < TEMPERATURE_LIMIT){
+  else if(state = 2 & dhtSensor.readTemperature < TEMPERATURE_LIMIT){
     setFan(0);   // fan off
     setState(1); // idle
   }
@@ -131,8 +134,8 @@ void setFan(int fanOn){
 
 // Display temperature and humidity to LCD screen
 void displayTempAndHumidity(){
-  float humidity = dht.readHumidity(); // read humidity
-  float tempF = dht.readTemperature(); // read temp in Farenheit
+  float humidity = dhtSensor.readHumidity; // read humidity
+  float tempF = dhtSensor.readTemperature; // read temp in Farenheit
   lcd.setCursor(0, 1);
 
   // Check for failed readings
@@ -166,7 +169,7 @@ ISR(PCINT1_vect){
     setState(1); // idle
 */
 
-// NOTE: Can also be done using ADC
+/*
 // Comparator Interrupt: // waterLevel < threshold
 void waterLevelTest()
 {
@@ -185,4 +188,4 @@ void stepMotor(int step)
   digitalWrite(Pin2, pole2[step]); 
   digitalWrite(Pin3, pole3[step]); 
   digitalWrite(Pin4, pole4[step]); 
-}
+}*/
