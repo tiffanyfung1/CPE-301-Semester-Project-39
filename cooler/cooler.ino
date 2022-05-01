@@ -117,7 +117,7 @@ void displayTempAndHumidity(){
 // NOTE: Can also be done using ADC
 // Comparator Interrupt: // waterLevel < threshold
 int threshVal = 0; // value holder
-int sensPin = A3; //  sensor pin 
+int sensPin = A8; //  sensor pin 
 
 lcd.setCursor(0, 1);
 
