@@ -8,7 +8,6 @@
 #include <Arduino.h>
 #include <LiquidCrystal.h>
 
-
 // LED macros and variables
 #define LEDS_OFF()     PORTE &= ~(0x3A);
 #define LED_ON(pinNum) PORTE |= (0x01 << ledPins[state]);
@@ -28,6 +27,14 @@ unsigned long nextLCDRefresh;
 // Cooler state variables
 volatile int state; // 0=disabled, 1=idle, 2=running, 3=error
 const char stateNames[4][9] = {"DISABLED", "IDLE", "RUNNING", "ERROR"};
+
+// buttons
+bool button1 = false; //on button
+bool button2 = false; //off button
+bool button3 = false; //reset button
+bool button4 = false; //step motor input 1
+bool button5 = false; //step motor input 2
+//**** do we need a vent position button?**********//
 
 // Stepper motor variables
 int cwSwitch = 2; //clockwise
@@ -127,6 +134,13 @@ void setState(int newState){
   LED_ON(newState);
 }
 
+// super states
+bool on = false;
+// substates
+bool error_state = false;
+bool idle_state = false;
+bool running_state = false;
+
 // Turns fan motor on and off
 void setFan(int fanOn){
   // fanOn = 0 -> off, fanON = 1 -> on
@@ -157,6 +171,46 @@ void displayTempAndHumidity(){
 // Start button interrupt
 ISR(PCINT1_vect){ 
   setState(1); // idle
+  /* if button 1 is down,
+     {
+  	button1=true;
+     }
+     if button 2 is down,
+     {
+     	button2=true;
+     }
+     if a button is released, check which button
+        if(button1)
+	{
+		if(running_state)
+		{
+			// stop fan
+			// print time stamp
+		}
+		//clear display
+		clear_lcd();
+		//turn yellow LED on and others off
+		// change state to off
+		on = false;
+		running_state = false;
+		idle_state = false;
+	}
+	else if (error_state)
+	{
+		//turn yellow LED off and red LED on
+		// print error message
+		// change state to on
+		on = true;
+	}
+	else //if off turn on
+	{
+		// turn yellow LED off and green LED on
+		// change state to on
+		on = true;
+		idle_state = true;
+	}
+	button1= false;
+  */
 }
 
 /* Stop Button Interrupt:
