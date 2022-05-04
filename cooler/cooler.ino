@@ -1,12 +1,14 @@
-#include <dht.h>
 
 // CPE 301 Semester Project
 // Swamp Cooler
 // Group 39
 // Parker True, Tiffany Fung, Bryce Millis
-
+#include <DHT.h>
+#include "RTClib.h"
+#include <Wire.h>
 #include <Arduino.h>
 #include <LiquidCrystal.h>
+
 
 // LED macros and variables
 #define LEDS_OFF()     PORTE &= ~(0x3A);
@@ -28,14 +30,6 @@ unsigned long nextLCDRefresh;
 volatile int state; // 0=disabled, 1=idle, 2=running, 3=error
 const char stateNames[4][9] = {"DISABLED", "IDLE", "RUNNING", "ERROR"};
 
-// buttons
-bool button1 = false; //on button
-bool button2 = false; //off button
-bool button3 = false; //reset button
-bool button4 = false; //step motor input 1
-bool button5 = false; //step motor input 2
-//**** do we need a vent position button?**********//
-
 // Stepper motor variables
 int cwSwitch = 2; //clockwise
 int ccwSwitch = 3; //counter clock wise 
@@ -49,10 +43,24 @@ int pole3[] ={0,1,1,1, 0,0,0,0, 0};
 int pole4[] ={1,1,0,0, 0,0,0,1, 0};
 int stepperPole = 0;
 int poleStep = 0;
-int direction = 0;			   
+int direction = 0;
+
+//RTC module
+RTC_DS1307 rtc;
+
+//Updated Current Date & Time
+DateTime now;
 			    
 void setup(){  
-  // Interrupt variables
+  //Initialize Clock Module
+  Wire.begin();
+  rtc.begin();
+  now = rtc.now();
+	
+//Initialize DHT sensor
+dht.begin(); 
+
+// Interrupt variables
   PCICR |= 1 << PCIE1; // set to generate interrupts
   PCMSK1 |= 1 << PCINT10; // enable on pin 5
   DDRJ &= 0 << DD1; // set to input with pullup enabled
@@ -75,7 +83,11 @@ void setup(){
 }
 
 void loop(){
-  // Adjust fan position
+  
+//Load current time into "now"
+now = rtc.now;
+	
+// Adjust fan position
 	/*if(state!=0){
     // Get position change direction
     if(digitalRead(ccwSwitch) == LOW) {
@@ -134,13 +146,6 @@ void setState(int newState){
   LED_ON(newState);
 }
 
-// super states
-bool on = false;
-// substates
-bool error_state = false;
-bool idle_state = false;
-bool running_state = false;
-
 // Turns fan motor on and off
 void setFan(int fanOn){
   // fanOn = 0 -> off, fanON = 1 -> on
@@ -171,46 +176,6 @@ void displayTempAndHumidity(){
 // Start button interrupt
 ISR(PCINT1_vect){ 
   setState(1); // idle
-  /* if button 1 is down,
-     {
-  	button1=true;
-     }
-     if button 2 is down,
-     {
-     	button2=true;
-     }
-     if a button is released, check which button
-        if(button1)
-	{
-		if(running_state)
-		{
-			// stop fan
-			// print time stamp
-		}
-		//clear display
-		clear_lcd();
-		//turn yellow LED on and others off
-		// change state to off
-		on = false;
-		running_state = false;
-		idle_state = false;
-	}
-	else if (error_state)
-	{
-		//turn yellow LED off and red LED on
-		// print error message
-		// change state to on
-		on = true;
-	}
-	else //if off turn on
-	{
-		// turn yellow LED off and green LED on
-		// change state to on
-		on = true;
-		idle_state = true;
-	}
-	button1= false;
-  */
 }
 
 /* Stop Button Interrupt:
@@ -242,4 +207,21 @@ void stepMotor(int step)
   digitalWrite(Pin2, pole2[step]); 
   digitalWrite(Pin3, pole3[step]); 
   digitalWrite(Pin4, pole4[step]); 
+  
+  void printTime()
+  {
+  Serial.print(now.year(), DEC); 
+  Serial.print('/');
+  Serial.print(now.month(), DEC);
+  Serial.print('/');
+  Serial.print(now.day(), DEC);
+  Serial.print(" at ");
+  Serial.print(now.hour(), DEC);
+  Serial.print(':');
+  Serial.print(now.minute(), DEC);
+  Serial.print(':');
+  Serial.print(now.second(), DEC);
+  Serial.println();
+}
+  
 }*/
