@@ -1,5 +1,6 @@
 {
     "configuration": "cpu=atmega2560",
     "board": "arduino:avr:mega",
-    "sketch": "cooler\\cooler.ino"
+    "sketch": "cooler\\cooler.ino",
+    "port": "COM4"
 }

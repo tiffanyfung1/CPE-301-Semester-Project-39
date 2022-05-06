@@ -1,215 +1,212 @@
-
 // CPE 301 Semester Project
 // Swamp Cooler
 // Group 39
 // Parker True, Tiffany Fung, Bryce Millis
-#include <DHT.h>
-#include "RTClib.h"
-#include <Wire.h>
+
 #include <Arduino.h>
 #include <LiquidCrystal.h>
+#include <DHT.h>
+#include <Stepper.h>
+#include "RTClib.h"
+#include <Wire.h>
 
-
-// LED macros and variables
-#define LEDS_OFF()     PORTE &= ~(0x3A);
-#define LED_ON(pinNum) PORTE |= (0x01 << ledPins[state]);
-int ledPins[4] = {2, 3, 5, 1};
-
-// DHT macros and variables
-#define DHT_ANALOGPIN A0
-#define DHTTYPE DHT11
-DHT dhtSensor;
-#define TEMPERATURE_LIMIT 70
-
-// LCD macros and variables
-#define LCD_REFRESH 60000
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2); // initialized w/ #s of interface pins
-unsigned long nextLCDRefresh;
-
-// Cooler state variables
-volatile int state; // 0=disabled, 1=idle, 2=running, 3=error
+// Cooler state
+int state; // 0=disabled, 1=idle, 2=running, 3=error
+volatile int newState = 0; // start state as disabled
 const char stateNames[4][9] = {"DISABLED", "IDLE", "RUNNING", "ERROR"};
 
-// Stepper motor variables
-int cwSwitch = 2; //clockwise
-int ccwSwitch = 3; //counter clock wise 
-int Pin1 = 10; //IN1 
-int Pin2 = 11; //IN2
-int Pin3 = 12; //IN3
-int Pin4 = 13; //IN4
-int pole1[] ={0,0,0,0, 0,1,1,1, 0}; //poles each with 8 step vals
-int pole2[] ={0,0,0,1, 1,1,0,0, 0};
-int pole3[] ={0,1,1,1, 0,0,0,0, 0};
-int pole4[] ={1,1,0,0, 0,0,0,1, 0};
-int stepperPole = 0;
-int poleStep = 0;
-int direction = 0;
+// Buttons
+#define DEBOUNCE_TIME 500
+volatile unsigned long lastButtonTime;
+#define RESET_BUTTON(); // check for reset button press // TODO
 
-//RTC module
+// LEDs
+#define LED_ON(pinNum) PORTC |= (0x01 << state);
+#define LEDS_OFF()     PORTC &= ~(0x0F);
+
+// LCD
+#define LCD_REFRESH 60000
+LiquidCrystal lcd(7, 8, 9, 10, 11, 12); // initialized w/ #s of interface pins
+unsigned long nextLCDRefresh;
+
+// DHT
+#define DHT_PIN 27
+#define TEMPERATURE_LIMIT 27
+DHT dht(DHT_PIN, DHT11);
+unsigned int temperature;
+
+// ADC
+volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
+volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
+volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
+volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
+
+// Stepper motor
+#define STEPS 100
+Stepper stepper(STEPS,32,33,30,31); 
+#define STEPPER_PIN 999999 //TODO 
+int ventPosition = 0;
+
+// RTC
 RTC_DS1307 rtc;
+DateTime now; // Current Date & Time
 
-//Updated Current Date & Time
-DateTime now;
-			    
+// DC fan motor
+#define FAN_ON()  PORTA |= (1 << DD1);
+#define FAN_OFF() PORTA &= (0 << DD1);
+
+// Water sensor
+#define WATER_MINIMUM 999999 // TODO
+#define WATER_PIN 999999 // TODO
+unsigned int waterLevel; // holds current water level
+
+// *******MAIN FUNCTIONS*******
+
 void setup(){  
-  //Initialize Clock Module
+  // Interrupts
+  PCICR |= (1 << PCIE1) | (1 << PCIE2); // enable interrupts on vectors 1,2
+  PCMSK2 |= 1 << PCINT17; // enable on pin A9
+  PCMSK1 |= 1 << PCINT10; // enable on pin 14
+  DDRK &= 0 << DD1; // set A9 to input with pullup enabled
+  PORTK |= 1 << DD1;
+  DDRJ &= 0 << DD1; // set 14 to input with pullup enabled
+  PORTJ |= 1 << DD1;
+  
+  // Serial Monitor
+  Serial.begin(9600);
+
+  // LEDs
+  DDRC |= 0x0F; // set pins 34-37 to output
+
+  // Stepper motor
+  stepper.setSpeed(30);
+
+  // LCD
+  lcd.begin(16, 2);  
+
+  // RTC
   Wire.begin();
   rtc.begin();
-  now = rtc.now();
-	
-//Initialize DHT sensor
-dht.begin(); 
 
-// Interrupt variables
-  PCICR |= 1 << PCIE1; // set to generate interrupts
-  PCMSK1 |= 1 << PCINT10; // enable on pin 5
-  DDRJ &= 0 << DD1; // set to input with pullup enabled
-  PORTJ |= 1 << DD1;
-	
-  // Stepper motor setup
-  pinMode(Pin1, OUTPUT); //define pin for ULN2003 in1 
-  pinMode(Pin2, OUTPUT); //define pin for ULN2003 in2   
-  pinMode(Pin3, OUTPUT); //define pin for ULN2003 in3   
-  pinMode(Pin4, OUTPUT); //define pin for ULN2003 in4    
-  pinMode(cwSwitch,INPUT_PULLUP);
-  pinMode(ccwSwitch,INPUT_PULLUP);
+  // DHT
+  dht.begin();  
+
+  // DC fan motor
+  DDRA |= 0x06; // set pins 23,24 to output
+  FAN_OFF(); // fan off
+
+  // ADC
+  //adcInit();
   
-  DDRE |= 0x3A; // 0b0011_1010, LED outputs
-  nextLCDRefresh = 0;
-  Serial.begin(9600);
-  setState(0); // disabled
-  setFan(0);   // fan off
-  lcd.begin(16, 2); 
+  // Initialize state
+  setState(); // set starting state
 }
 
 void loop(){
-  
-//Load current time into "now"
-now = rtc.now;
-	
-// Adjust fan position
-	/*if(state!=0){
-    // Get position change direction
-    if(digitalRead(ccwSwitch) == LOW) {
-      direction =1;
-    } else if(digitalRead(cwSwitch) == LOW){
-      direction  = 2;  
-    } else{
-      direction =3; 
-    }
-    // Change position
-    if(direction ==1){ 
-      stepperPole++; 
-      driveStepper(poleStep);    
-    }else if(direction ==2){ 
-      stepperPole--; 
-      driveStepper(poleStep);    
-    }else{
-      driveStepper(8);   
-    }
-    // Account for rollover
-    if(stepperPole>7){ 
-      stepperPole=0; 
-    } else if(stepperPole<0){ 
-      stepperPole=7; 
-    } 
-  }*/
-  
-  // Temperature > threshold: turn on fan
-  if(state = 1 & dhtSensor.readTemperature > TEMPERATURE_LIMIT){
-    setFan(1);   // fan on
-    setState(2); // running
-  }
-
-  // Temperature < threshold: turn off fan
-  else if(state = 2 & dhtSensor.readTemperature < TEMPERATURE_LIMIT){
-    setFan(0);   // fan off
-    setState(1); // idle
-  }
-
-  // Every minute: display temp and humidity to LCD screen
+  // Display temp and humidity to LCD every minute if not disabled
   if(millis() >= nextLCDRefresh){
-    nextLCDRefresh += LCD_REFRESH;
+    nextLCDRefresh += LCD_REFRESH; // set next display time
     if(state != 0){
       displayTempAndHumidity();
     }
   }
-}
 
-// Change cooler state
-void setState(int newState){
-  state = newState;
-  //Serial.print(time);
-  Serial.print(": state is now ");
-  Serial.println(stateNames[newState]); 
-  LEDS_OFF();
-  LED_ON(newState);
-}
-
-// Turns fan motor on and off
-void setFan(int fanOn){
-  // fanOn = 0 -> off, fanON = 1 -> on
-}
-
-// Display temperature and humidity to LCD screen
-void displayTempAndHumidity(){
-  float humidity = dhtSensor.readHumidity; // read humidity
-  float tempF = dhtSensor.readTemperature; // read temp in Farenheit
-  lcd.setCursor(0, 1);
-
-  // Check for failed readings
-  if (isnan(humidity) || isnan(tempF)) {
-    lcd.println("DHT sensor reading(s) failed");
+  temperature = dht.readTemperature(); // read current temperature
+ 
+  // Temperature > threshold: turn on fan
+  if(state == 1 && temperature > TEMPERATURE_LIMIT){
+    newState = 2;
   }
 
-  // Display humidity and temperature on LCD 
-  else {
-    lcd.println("Humidity: ");
-    lcd.print(humidity);
-    lcd.print("%");
-    lcd.println("Temperature: ");
-    lcd.print(tempF);
-    lcd.print("F");
+  // Temperature < threshold: turn off fan
+  else if(state == 2 && temperature < TEMPERATURE_LIMIT){
+    newState = 1;
   }
+
+  // TODO
+  // Water level low: display error
+  /*if(getWaterLevel() < WATER_MINIMUM){
+    newState = 3;
+  }*/
+
+  // TODO
+  // Reset button: begin idle
+  /*bool reset = RESET_BUTTON();
+  if(state == 3 && reset && getWaterLevel() > WATER_MINIMUM){
+    newState = 1;
+  }*/
+ 
+  // Allow adjustments to fan position if not disabled
+  if(state != 0){
+    //adjustFan();
+  }
+
+  // Sets state for beginning of next iteration of the main loop
+  setState();
 }
+
+// *******INTERRUPTS*******
 
 // Start button interrupt
-ISR(PCINT1_vect){ 
-  setState(1); // idle
+ISR(PCINT2_vect){
+  unsigned long currentTime = millis();
+  if(currentTime - lastButtonTime > DEBOUNCE_TIME){
+    newState = 1;
+  }
+  lastButtonTime = currentTime;
 }
 
-/* Stop Button Interrupt:
-  setFan(0);   // fan off
-  setState(0); // disabled
-*/
-
-/* Reset Button Interrupt:
-  If waterLevel > threshold
-    setState(1); // idle
-*/
-
-/*
-// Comparator Interrupt: // waterLevel < threshold
-void waterLevelTest()
-{
-  int threshVal = 0; // value holder
-  int sensPin = A8; //  sensor pin 
-  lcd.setCursor(0, 1);
-  threshVal = analogRead(senspin); // read from analog pin, store in threshVal 
-  if (thresVal<=300){
-    lcd.println("Water level is too low"); // LCD error message
+// Stop button interrupt
+ISR(PCINT1_vect){
+  unsigned long currentTime = millis();
+  if(currentTime - lastButtonTime > DEBOUNCE_TIME){
+    newState = 0;
   }
-}  
- 
-void stepMotor(int step)
-{
-  digitalWrite(Pin1, pole1[step]);  
-  digitalWrite(Pin2, pole2[step]); 
-  digitalWrite(Pin3, pole3[step]); 
-  digitalWrite(Pin4, pole4[step]); 
+  lastButtonTime = currentTime;
+}
+
+// *******ADDITIONAL FUNCTIONS*******
+
+// Sets state for beginning of next iteration of the main loop
+void setState(){
+  // Handle state transition
+  switch(newState){
+    case 0: 
+      lcd.clear();
+      FAN_OFF() // fan off
+      break;
+    case 1: 
+      displayTempAndHumidity();
+      FAN_OFF(); // fan off
+      break;
+    case 2: 
+      FAN_ON(); // fan on
+    case 3:
+      // TODO
+    default: 
+      break;
+  }
   
-  void printTime()
-  {
+  // Change cooler state
+  if(newState != -1){
+    changeState();
+  }
+}
+
+// General state transition procedure
+void changeState(){
+  state = newState; // update current state
+  printTime();
+  Serial.print(" state is now ");
+  Serial.println(stateNames[state]); 
+  LEDS_OFF();
+  LED_ON(state);
+  newState = -1; // reset to no state transition
+}
+
+// Prints time to Serial monitor from RTC
+void printTime(){
+  now = rtc.now(); // get current time
   Serial.print(now.year(), DEC); 
   Serial.print('/');
   Serial.print(now.month(), DEC);
@@ -221,7 +218,87 @@ void stepMotor(int step)
   Serial.print(now.minute(), DEC);
   Serial.print(':');
   Serial.print(now.second(), DEC);
-  Serial.println();
+  Serial.print(":");
 }
+
+// Display temperature and humidity to LCD screen
+void displayTempAndHumidity(){
+  int humidity = dht.readHumidity(); // read humidity
+  lcd.clear();
+  lcd.setCursor(0, 0);
   
+  // Check for failed readings
+  if(isnan(humidity) || isnan(temperature)){
+    lcd.print("DHT sensor reading(s) failed");
+  }
+  
+  // Display humidity and temperature on LCD 
+  else{
+    lcd.print("Temperature: ");
+    lcd.print(temperature);
+    lcd.print("C");
+    lcd.setCursor(0, 1);
+    lcd.print("Humidity: ");
+    lcd.print(humidity);
+    lcd.print("%");
+  }
+}
+
+// TODO
+// Adjust vent position
+/*void adjustFan(){
+  int newVentPosition = adcRead(STEPPER_PIN);
+  stepper.step(newVentPosition - ventPosition);
+  ventPosition = newVentPosition;
+}*/
+
+// TODO
+// Read current water level
+/*void getWaterLevel(){
+  
+}*/
+
+// TODO
+/*void adcInit()
+{
+  // setup the A register
+  // set bit   7 to 1 to enable the ADC
+  // clear bit 5 to 0 to disable the ADC trigger mode
+  // clear bit 3 to 0 to disable the ADC interrupt
+  // clear bit 2-0 to 0 to set prescaler selection to slow reading
+  *my_ADCSRA |= 0x80;
+  *my_ADCSRA &= ~(0x2F);
+  
+  // setup the B register
+  // clear bit 3 to 0 to reset the channel and gain bits
+  // clear bit 2-0 to 0 to set free running mode
+  *my_ADCSRB &= 0xF0;
+  
+  // setup the MUX Register
+  // clear bit 7 to 0 for AVCC analog reference
+  // set bit   6 to 1 for AVCC analog reference
+  // clear bit 5 to 0 for right adjust result
+  // clear bit 4-0 to 0 to reset the channel and gain bits
+  *my_ADMUX = 0x40;
+}*/
+
+//TODO
+/*unsigned int adcRead(unsigned char adc_channel_num)
+{
+  // clear the channel selection bits (MUX 4:0)
+  *my_ADMUX &= 0xE0;
+  // clear the channel selection bits (MUX 5)
+  *my_ADCSRB &= 0xF7;
+  // set the channel number
+  *my_ADMUX |= adc_channel_num;
+  // set the channel selection bits, but remove the most significant bit (bit 3)
+  *my_ADMUX = (*myADMUX && 0xF8) || (adc_channel_num && 0x07);
+  // set MUX bit 5
+  *my_ADCSRB |= 0x08;
+ // set bit 6 of ADCSRA to 1 to start a conversion
+  *my_ADCSRA |= 0x40;
+  // wait for the conversion to complete
+  while((*myADCSRA & 0x40) != 0);
+  // return the result in the ADC data register
+  return *my_ADC_DATA;
 }*/

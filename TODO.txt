@@ -1,6 +1,7 @@
-1) Interrupts: stop, start, reset
-2) Configure ledPort
-3) setFan()
-4) Configure real-time clock
-5) Error interrupt
-6) Adjust fan position
+1) Configure reset button
+2) Configure analog input for stepper motor
+3) adcInit()
+4) adcRead()
+5) Configure water sensor
+6) getWaterLevel()
+7) update setState() to handle error case
