@@ -43,16 +43,13 @@
 11. push button 3 // reset button
    - pin A11
 
-12. stepper analog input (potentiometer maybe??)
- - //TODO
+12. stepper analog input
+   - potentiometer
 
 13. water sensor
    - A8
 
-15. Servo
-   - pin 13
-
-16. step motor
+14. step motor
    - 1N1 - pin 30
    - 1N2 - pin 31
    - 1N3 - pin 32

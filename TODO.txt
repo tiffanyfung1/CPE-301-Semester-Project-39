@@ -1,7 +1,0 @@
-1) Configure reset button
-2) Configure analog input for stepper motor
-3) adcInit()
-4) adcRead()
-5) Configure water sensor
-6) getWaterLevel()
-7) update setState() to handle error case

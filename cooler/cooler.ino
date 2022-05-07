@@ -18,7 +18,7 @@ const char stateNames[4][9] = {"DISABLED", "IDLE", "RUNNING", "ERROR"};
 // Buttons
 #define DEBOUNCE_TIME 500
 volatile unsigned long lastButtonTime;
-#define RESET_BUTTON(); // check for reset button press // TODO
+#define RESET_BUTTON() (PORTK &= 0x08) != 0; // check for reset button press
 
 // LEDs
 #define LED_ON(pinNum) PORTC |= (0x01 << state);
@@ -44,7 +44,7 @@ volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 // Stepper motor
 #define STEPS 100
 Stepper stepper(STEPS,32,33,30,31); 
-#define STEPPER_PIN 999999 //TODO 
+#define STEPPER_PIN 12 
 int ventPosition = 0;
 
 // RTC
@@ -56,9 +56,8 @@ DateTime now; // Current Date & Time
 #define FAN_OFF() PORTA &= (0 << DD1);
 
 // Water sensor
-#define WATER_MINIMUM 999999 // TODO
-#define WATER_PIN 999999 // TODO
-unsigned int waterLevel; // holds current water level
+#define WATER_MINIMUM 150
+#define WATER_PIN 12
 
 // *******MAIN FUNCTIONS*******
 
@@ -72,6 +71,10 @@ void setup(){
   DDRJ &= 0 << DD1; // set 14 to input with pullup enabled
   PORTJ |= 1 << DD1;
   
+  // Reset button
+  DDRK &= 0 << DD3; // set A12 to input with pullup enabled
+  PORTK |= 1 << DD3;
+
   // Serial Monitor
   Serial.begin(9600);
 
@@ -106,7 +109,7 @@ void loop(){
   // Display temp and humidity to LCD every minute if not disabled
   if(millis() >= nextLCDRefresh){
     nextLCDRefresh += LCD_REFRESH; // set next display time
-    if(state != 0){
+    if(state == 1 or state == 2){
       displayTempAndHumidity();
     }
   }
@@ -123,18 +126,16 @@ void loop(){
     newState = 1;
   }
 
-  // TODO
   // Water level low: display error
-  /*if(getWaterLevel() < WATER_MINIMUM){
+  if(getWaterLevel() < WATER_MINIMUM){
     newState = 3;
-  }*/
+  }
 
-  // TODO
   // Reset button: begin idle
-  /*bool reset = RESET_BUTTON();
+  bool reset = RESET_BUTTON();
   if(state == 3 && reset && getWaterLevel() > WATER_MINIMUM){
     newState = 1;
-  }*/
+  }
  
   // Allow adjustments to fan position if not disabled
   if(state != 0){
@@ -173,16 +174,18 @@ void setState(){
   switch(newState){
     case 0: 
       lcd.clear();
-      FAN_OFF() // fan off
+      FAN_OFF();
       break;
     case 1: 
       displayTempAndHumidity();
-      FAN_OFF(); // fan off
+      FAN_OFF();
       break;
     case 2: 
-      FAN_ON(); // fan on
+      FAN_ON();
     case 3:
-      // TODO
+      FAN_OFF();
+      lcd.clear();
+      lcd.print("ERROR: water low");
     default: 
       break;
   }
@@ -244,23 +247,20 @@ void displayTempAndHumidity(){
   }
 }
 
-// TODO
 // Adjust vent position
-/*void adjustFan(){
+void adjustFan(){
   int newVentPosition = adcRead(STEPPER_PIN);
   stepper.step(newVentPosition - ventPosition);
   ventPosition = newVentPosition;
-}*/
+}
 
-// TODO
 // Read current water level
-/*void getWaterLevel(){
-  
-}*/
+int getWaterLevel(){
+  return adcRead(WATER_PIN);
+}
 
-// TODO
-/*void adcInit()
-{
+// Initialize analog to digital conversion
+void adcInit(){
   // setup the A register
   // set bit   7 to 1 to enable the ADC
   // clear bit 5 to 0 to disable the ADC trigger mode
@@ -280,11 +280,10 @@ void displayTempAndHumidity(){
   // clear bit 5 to 0 for right adjust result
   // clear bit 4-0 to 0 to reset the channel and gain bits
   *my_ADMUX = 0x40;
-}*/
+}
 
-//TODO
-/*unsigned int adcRead(unsigned char adc_channel_num)
-{
+// Read analog input and convert to digital value
+unsigned int adcRead(unsigned char adc_channel_num){
   // clear the channel selection bits (MUX 4:0)
   *my_ADMUX &= 0xE0;
   // clear the channel selection bits (MUX 5)
@@ -292,13 +291,13 @@ void displayTempAndHumidity(){
   // set the channel number
   *my_ADMUX |= adc_channel_num;
   // set the channel selection bits, but remove the most significant bit (bit 3)
-  *my_ADMUX = (*myADMUX && 0xF8) || (adc_channel_num && 0x07);
+  *my_ADMUX = (*my_ADMUX && 0xF8) || (adc_channel_num && 0x07);
   // set MUX bit 5
   *my_ADCSRB |= 0x08;
  // set bit 6 of ADCSRA to 1 to start a conversion
   *my_ADCSRA |= 0x40;
   // wait for the conversion to complete
-  while((*myADCSRA & 0x40) != 0);
+  while((*my_ADCSRA & 0x40) != 0);
   // return the result in the ADC data register
   return *my_ADC_DATA;
-}*/
+}
